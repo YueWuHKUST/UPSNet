@@ -98,12 +98,15 @@ class Cityscapes(BaseDataset):
 
         else:
             assert len(image_sets) == 1
+            image_dir = config.dataset.dataset_path
+            anno_file = config.dataset.json_path
             self.dataset = JsonDataset('cityscapes_' + image_sets[0],
-                                       image_dir=self.image_dirs[image_sets[0]],
-                                       anno_file=os.path.join(config.dataset.dataset_path, 'annotations',
-                                       self.anno_files[image_sets[0]]))
-            roidb = self.dataset.get_roidb(gt=True, proposal_file=proposal_files[0],
-                                           crowd_filter_thresh=config.train.crowd_filter_thresh if phase != 'test' else 0)
+                                       image_dir=image_dir,
+                                       anno_file=anno_file)
+            
+            roidb = self.dataset.get_roidb(gt=False, proposal_file=proposal_files[0],
+                                           crowd_filter_thresh=0)
+
             if flip:
                 if logger:
                     logger.info('Appending horizontally-flipped training examples...')
@@ -368,10 +371,14 @@ class Cityscapes(BaseDataset):
         roidb = self.dataset.get_roidb()
         for i, entry in enumerate(roidb):
             im_name = entry['image']
-
+            sub_dir = im_name.split("/")[-4]
+            output_dir_sub = output_dir + "/" + sub_dir + "/"
+            if not os.path.exists(output_dir_sub):
+                os.makedirs(output_dir_sub)
             basename = os.path.splitext(os.path.basename(im_name))[0]
-            txtname = os.path.join(output_dir, 'inst_seg', basename + 'pred.txt')
-            os.makedirs(os.path.join(output_dir, 'inst_seg'), exist_ok=True)
+            print("basename = ", basename)
+            txtname = os.path.join(output_dir_sub, 'inst_seg', basename + 'pred.txt')
+            os.makedirs(os.path.join(output_dir_sub, 'inst_seg'), exist_ok=True)
             with open(txtname, 'w') as fid_txt:
                 for j in range(1, len(all_segms)):
                     clss = self.dataset.classes[j]
@@ -391,8 +398,8 @@ class Cityscapes(BaseDataset):
                         # write txt
                         fid_txt.write('{} {} {}\n'.format(pngname, clss_id, score))
                         # save mask
-                        os.makedirs(os.path.join(output_dir, 'inst_seg', 'seg_results', basename), exist_ok=True)
-                        cv2.imwrite(os.path.join(output_dir, 'inst_seg', pngname), mask * 255)
+                        os.makedirs(os.path.join(output_dir_sub, 'inst_seg', 'seg_results', basename), exist_ok=True)
+                        cv2.imwrite(os.path.join(output_dir_sub, 'inst_seg', pngname), mask * 255)
         cityscapes_eval.main()
         return None
 

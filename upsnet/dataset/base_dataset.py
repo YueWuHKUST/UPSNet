@@ -195,13 +195,13 @@ class BaseDataset(torch.utils.data.Dataset):
         with open(res_file, 'w') as fid:
             json.dump(results, fid)
 
-        coco_dt = self.dataset.COCO.loadRes(str(res_file))
-        coco_eval = COCOeval(self.dataset.COCO, coco_dt, 'bbox')
-        coco_eval.evaluate()
-        coco_eval.accumulate()
-        self.log_detection_eval_metrics(coco_eval, os.path.join(output_dir, 'detection_results.txt'))
+        #coco_dt = self.dataset.COCO.loadRes(str(res_file))
+        #coco_eval = COCOeval(self.dataset.COCO, coco_dt, 'bbox')
+        #coco_eval.evaluate()
+        #coco_eval.accumulate()
+        #self.log_detection_eval_metrics(coco_eval, os.path.join(output_dir, 'detection_results.txt'))
 
-        return coco_eval.stats
+        return None#coco_eval.stats
 
     def evaluate_masks(self, all_boxes, all_segms, output_dir):
         pass

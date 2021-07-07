@@ -67,14 +67,21 @@ class JsonDataset(object):
         self.COCO = COCO(anno_file)
         self.debug_timer = Timer()
         # Set up dataset classes
-        category_ids = self.COCO.getCatIds()
-        categories = [c['name'] for c in self.COCO.loadCats(category_ids)]
+        #Yue
+        
+        #category_ids = self.COCO.getCatIds()
+        # Test
+        category_ids = [1, 2, 3, 4, 5, 6, 7, 8]
+        print("category_ids = ", category_ids)
+        categories = ['person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle']
+        #categories = [c['name'] for c in self.COCO.loadCats(category_ids)]
+        print("categories = ", categories)
         self.category_to_id_map = dict(zip(categories, category_ids))
         self.classes = ['__background__'] + categories
         self.num_classes = len(self.classes)
         self.json_category_id_to_contiguous_id = {
             v: i + 1
-            for i, v in enumerate(self.COCO.getCatIds())
+            for i, v in enumerate(category_ids)
         }
         self.contiguous_category_id_to_json_id = {
             v: k

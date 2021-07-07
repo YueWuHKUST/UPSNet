@@ -11,6 +11,7 @@ dataset:
   image_set: train
   root_path: "./data/"
   test_image_set: val
+  json_path: "./data/cityscapes.json"
 
 network:
   has_rpn: true

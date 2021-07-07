@@ -1,16 +1,17 @@
 ---
-output_path: "./output/upsnet/cityscapes"
-model_prefix: "upsnet_resnet_50_cityscapes_"
-symbol: resnet_50_upsnet
+output_path: "./output/upsnet/kitti/2011_10_03/"
+model_prefix: "upsnet_resnet_101_cityscapes_"
+symbol: resnet_101_upsnet
 gpus: '0'
 dataset:
   num_classes: 9
   num_seg_classes: 19
   dataset: Cityscapes
-  dataset_path: "./data/cityscapes/"
+  dataset_path: "./data/kitti/"
   image_set: train
   root_path: "./data/"
   test_image_set: val
+  json_path: "./data/kitti.json"
 
 network:
   has_rpn: true
@@ -20,7 +21,7 @@ network:
   fcn_head: "FCNHead"
   fcn_num_layers: 2
   has_panoptic_head: true
-  pretrained: "./model/pretrained_model/resnet-50-caffe.pth"
+  pretrained: "./model/upsnet_resnet_101_coco_pretrained_for_cityscapes.pth"
   
 
 train:
@@ -40,10 +41,10 @@ train:
   snapshot_step: 1000
   resume: false
   begin_iteration: 0
-  max_iteration: 12000
+  max_iteration: 3000
   decay_iteration:
-  - 9000
-  warmup_iteration: 1500
+  - 2000
+  warmup_iteration: 0
   lr: 0.02
   wd: 0.0001
   momentum: 0.9
@@ -61,6 +62,6 @@ test:
   - 1024
   max_size: 2048
   batch_size: 1
-  test_iteration: 12000
+  test_iteration: 3000
   panoptic_stuff_area_limit: 2048
   vis_mask: false

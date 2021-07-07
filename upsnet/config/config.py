@@ -74,6 +74,7 @@ config.network.fcn_num_layers = 3
 
 # dataset related params
 config.dataset = edict()
+# config.dataset.json_path = ''
 # config.dataset.dataset = ''
 # config.dataset.image_set = ''
 # config.dataset.test_image_set = ''
@@ -81,6 +82,7 @@ config.dataset = edict()
 # config.dataset.dataset_path = ''
 # config.dataset.num_classes = 0
 # config.dataset.num_seg_classes = 0
+
 
 # training related params
 config.train = edict()

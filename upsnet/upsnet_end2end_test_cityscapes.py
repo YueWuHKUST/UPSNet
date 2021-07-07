@@ -36,7 +36,6 @@ from upsnet.config.parse_args import parse_args
 from lib.utils.logging import create_logger
 from lib.utils.timer import Timer
 
-
 args = parse_args()
 logger, final_output_path = create_logger(config.output_path, args.cfg, config.dataset.test_image_set)
 
@@ -53,7 +52,6 @@ cudnn.enabled = True
 cudnn.benchmark = False
 
 def im_detect(output_all, data, im_infos):
-
     scores_all = []
     pred_boxes_all = []
     pred_masks_all = []
@@ -92,6 +90,37 @@ def im_detect(output_all, data, im_infos):
     }
 
 
+def failure_removal(boxes, masks, ref_box):
+    
+    if boxes.shape[0] == 0:
+        return boxes, np.zeros((0,9,28,28)), np.zeros((0,4))
+    else:
+        tmp = np.zeros((0,5))
+        valid_idx = [False]*len(boxes)
+        for j in range(len(boxes)):
+            cnt_ = boxes[j,:]
+            if cnt_[-1] > 0.9:
+                valid_idx[j] = True
+                if tmp.shape[0] == 0:
+                    tmp = boxes[j:j+1,...]
+                else:
+                    tmp = np.concatenate([tmp, boxes[j:j+1,...]], axis=0)
+
+        masks_ret = np.zeros((0,9,28,28))       
+        ref_box_ret = np.zeros((0,4))
+        for j in range(len(boxes)):
+            if valid_idx[j] == True:
+                if masks_ret.shape[0] == 0:
+                    masks_ret = masks[j:j+1,...]
+                else:
+                    masks_ret = np.concatenate([masks_ret, masks[j:j+1,...]], axis=0)
+                if ref_box_ret.shape[0] == 0:
+                    ref_box_ret = ref_box[j:j+1,...]
+                else:
+                    ref_box_ret = np.concatenate([ref_box_ret, ref_box[j:j+1,...]], axis=0)
+
+    return tmp, masks_ret, ref_box_ret
+
 def im_post(boxes_all, masks_all, scores, pred_boxes, pred_masks, cls_inds, num_classes, im_info):
 
     cls_segms = [[] for _ in range(num_classes)]
@@ -105,12 +134,12 @@ def im_post(boxes_all, masks_all, scores, pred_boxes, pred_masks, cls_inds, num_
     ref_boxes = expand_boxes(pred_boxes, scale)
     ref_boxes = ref_boxes.astype(np.int32)
     padded_mask = np.zeros((M + 2, M + 2), dtype=np.float32)
-
     for idx in range(1, num_classes):
         segms = []
         cls_boxes = np.hstack([pred_boxes[idx == cls_inds, :], scores.reshape(-1, 1)[idx == cls_inds]])
         cls_pred_masks = pred_masks[idx == cls_inds]
         cls_ref_boxes = ref_boxes[idx == cls_inds]
+        cls_boxes, cls_pred_masks, cls_ref_boxes = failure_removal(cls_boxes, cls_pred_masks, cls_ref_boxes)
         for _ in range(cls_boxes.shape[0]):
 
             if pred_masks.shape[1] > 1:
@@ -143,6 +172,7 @@ def im_post(boxes_all, masks_all, scores, pred_boxes, pred_masks, cls_inds, num_
                 np.array(im_mask[:, :, np.newaxis], order='F')
             )[0]
             rle['counts'] = rle['counts'].decode()
+            # Updata segs
             segms.append(rle)
 
             mask_ind += 1
@@ -153,7 +183,6 @@ def im_post(boxes_all, masks_all, scores, pred_boxes, pred_masks, cls_inds, num_
 
 
 def upsnet_test():
-
     pprint.pprint(config)
     logger.info('test config:{}\n'.format(pprint.pformat(config)))
 
@@ -223,6 +252,7 @@ def upsnet_test():
         data_timer.tic()
         batch = []
         labels = []
+        #Collect a batch of data
         for gpu_id in gpus:
             try:
                 data, label, _ = test_iter.next()
@@ -251,6 +281,7 @@ def upsnet_test():
             else:
                 net_time = 0
             output = im_detect(output, batch, im_infos)
+        
         post_timer.tic()
         for score, box, mask, cls_idx, im_info in zip(output['scores'], output['boxes'], output['masks'], output['cls_inds'], im_infos):
             im_post(all_boxes, all_masks, score, box, mask, cls_idx, test_dataset.num_classes, np.round(im_info[:2] / im_info[2]).astype(np.int32))
@@ -294,13 +325,13 @@ def upsnet_test():
                'all_pano_cls_inds': all_pano_cls_inds if config.network.has_panoptic_head else None,
                }
 
-    with open(os.path.join(final_output_path, 'results', 'results_list.pkl'), 'wb') as f:
-        pickle.dump(results, f, protocol=2)
+    #with open(os.path.join(final_output_path, 'results', 'results_list.pkl'), 'wb') as f:
+    #    pickle.dump(results, f, protocol=2)
 
     if config.test.vis_mask:
         test_dataset.vis_all_mask(all_boxes, all_masks, os.path.join(final_output_path, 'results', 'vis'))
     else:
-        test_dataset.evaluate_boxes(all_boxes, os.path.join(final_output_path, 'results'))
+        #test_dataset.evaluate_boxes(all_boxes, os.path.join(final_output_path, 'results'))
         if config.network.has_mask_head:
             test_dataset.evaluate_masks(all_boxes, all_masks, os.path.join(final_output_path, 'results'))
         if config.network.has_panoptic_head:
